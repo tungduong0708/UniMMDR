@@ -607,7 +607,8 @@ class ColPaliModel:
     
     def search(
         self,
-        query: Union[str, List[str]],
+        # query: Union[str, List[str]],
+        qs: List[torch.Tensor],
         k: int = 10,
         filter_metadata: Optional[Dict[str,str]] = None,
         return_base64_results: Optional[bool] = None,
@@ -620,52 +621,53 @@ class ColPaliModel:
         # Ensure k is not larger than the number of indexed documents
         k = min(k, len(self.indexed_embeddings))
 
-        # Process query/queries
-        if isinstance(query, str):
-            queries = [query]
-        else:
-            queries = query
+        # # Process query/queries
+        # if isinstance(query, str):
+        #     queries = [query]
+        # else:
+        #     queries = query
 
         results = []
-        for q in queries:
-            # Process query
-            with torch.inference_mode():
-                batch_query = self.processor.process_queries([q])
-                batch_query = {k: v.to(self.device).to(self.model.dtype if v.dtype in [torch.float16, torch.bfloat16, torch.float32] else v.dtype) for k, v in batch_query.items()}
-                embeddings_query = self.model(**batch_query)
-            qs = list(torch.unbind(embeddings_query.to("cpu")))
-            if not filter_metadata:
-                req_embeddings = self.indexed_embeddings
+        # for q in queries:
+        #     # Process query
+        #     with torch.inference_mode():
+        #         batch_query = self.processor.process_queries([q])
+        #         batch_query = {k: v.to(self.device).to(self.model.dtype if v.dtype in [torch.float16, torch.bfloat16, torch.float32] else v.dtype) for k, v in batch_query.items()}
+        #         embeddings_query = self.model(**batch_query)
+        #     qs = list(torch.unbind(embeddings_query.to("cpu")))
+        if not filter_metadata:
+            req_embeddings = self.indexed_embeddings
+        else:
+            req_embeddings, req_embedding_ids = self.filter_embeddings(filter_metadata=filter_metadata) 
+        # Compute scores
+        scores = self.processor.score(qs,req_embeddings).cpu().numpy()
+
+        # Get top k relevant pages
+        top_pages = scores.argsort(axis=1)[0][-k:][::-1].tolist()
+
+        # Create Result objects
+        query_results = []
+        for embed_id in top_pages:
+            if filter_metadata:
+                adjusted_embed_id = req_embedding_ids[embed_id]
             else:
-                req_embeddings, req_embedding_ids = self.filter_embeddings(filter_metadata=filter_metadata) 
-            # Compute scores
-            scores = self.processor.score(qs,req_embeddings).cpu().numpy()
+                adjusted_embed_id = int(embed_id)
+            doc_info = self.embed_id_to_doc_id[adjusted_embed_id]
+            result = Result(
+                doc_id=doc_info["doc_id"],
+                page_num=int(doc_info["page_id"]),
+                score=float(scores[0][int(embed_id)]),
+                metadata=self.doc_id_to_metadata.get(int(doc_info["doc_id"]), {}),
+                base64=self.collection.get(adjusted_embed_id)
+                if return_base64_results
+                else None,
+            )
+            query_results.append(result)
 
-            # Get top k relevant pages
-            top_pages = scores.argsort(axis=1)[0][-k:][::-1].tolist()
+        results.append(query_results)
 
-            # Create Result objects
-            query_results = []
-            for embed_id in top_pages:
-                if filter_metadata:
-                    adjusted_embed_id = req_embedding_ids[embed_id]
-                else:
-                    adjusted_embed_id = int(embed_id)
-                doc_info = self.embed_id_to_doc_id[adjusted_embed_id]
-                result = Result(
-                    doc_id=doc_info["doc_id"],
-                    page_num=int(doc_info["page_id"]),
-                    score=float(scores[0][int(embed_id)]),
-                    metadata=self.doc_id_to_metadata.get(int(doc_info["doc_id"]), {}),
-                    base64=self.collection.get(adjusted_embed_id)
-                    if return_base64_results
-                    else None,
-                )
-                query_results.append(result)
-
-            results.append(query_results)
-
-        return results[0] if isinstance(query, str) else results
+        # return results[0] if isinstance(query, str) else results
+        return results[0]
 
     def encode_image(
         self, input_data: Union[str, Image.Image, List[Union[str, Image.Image]]]
