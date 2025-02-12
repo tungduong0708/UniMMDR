@@ -678,6 +678,9 @@ class ColPaliModel:
         filter_metadata: Optional[Dict[str,str]] = None,
         return_base64_results: Optional[bool] = None,
     ) -> Union[List[Result], List[List[Result]]]:
+        print("DEBUG: search() function is being called")
+        print(f"query_text: {query_text}, type: {type(query_text)}")
+        print(f"query_image: {query_image}, type: {type(query_image)}")
         # Set default value for return_base64_results if not provided
         if return_base64_results is None:
             return_base64_results = bool(self.collection)
