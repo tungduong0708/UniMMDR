@@ -700,6 +700,7 @@ class ColPaliModel:
         results = []
         for q_t, q_i in zip(queries_text, queries_image):
             # Process query
+            print(q_t, q_i)
             with torch.inference_mode():
                 batch_query_text = self.processor.process_queries([q_t])
                 batch_query_text = {k: v.to(self.device).to(self.model.dtype if v.dtype in [torch.float16, torch.bfloat16, torch.float32] else v.dtype) for k, v in batch_query_text.items()}
