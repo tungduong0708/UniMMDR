@@ -219,5 +219,5 @@ class FLMRModelForIndexing(FLMRModelForRetrieval):
 
         # input_ids, attention_mask = self.context_tokenizer(docs)
         output = self.context_tokenizer(docs)
-        print(output)
+        input_ids, attention_mask = output['input_ids'], output['attention_mask']
         return self.doc(input_ids, attention_mask, keep_dims=keep_dims, to_cpu=to_cpu)
