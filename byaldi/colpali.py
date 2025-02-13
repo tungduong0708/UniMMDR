@@ -681,6 +681,7 @@ class ColPaliModel:
 
         print("Starting search")
         print(type(query_text), type(query_image))
+
         # Set default value for return_base64_results if not provided
         if return_base64_results is None:
             return_base64_results = bool(self.collection)
@@ -701,6 +702,7 @@ class ColPaliModel:
             queries_image = query_image
 
         results = []
+        print(queries_text, queries_image)
         for q_t, q_i in zip(queries_text, queries_image):
             # Process query
             print(q_t, q_i)
