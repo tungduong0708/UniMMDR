@@ -702,10 +702,8 @@ class ColPaliModel:
             queries_image = query_image
 
         results = []
-        print(queries_text, queries_image)
         for q_t, q_i in zip(queries_text, queries_image):
             # Process query
-            print(q_t, q_i)
             with torch.inference_mode():
                 batch_query_text = self.processor.process_queries([q_t])
                 batch_query_text = {k: v.to(self.device).to(self.model.dtype if v.dtype in [torch.float16, torch.bfloat16, torch.float32] else v.dtype) for k, v in batch_query_text.items()}
@@ -727,7 +725,8 @@ class ColPaliModel:
             req_embeddings, req_embedding_ids = self.filter_embeddings(filter_metadata=filter_metadata) 
         # Compute scores
         # scores = self.processor.score(qs,req_embeddings).cpu().numpy()
-        scores = self.processor.score(qs, req_embeddings).detach().cpu().numpy()
+        print(qs, req_embeddings)
+        scores = self.processor.score(qs, req_embeddings).cpu().numpy()
 
         # Get top k relevant pages
         top_pages = scores.argsort(axis=1)[0][-k:][::-1].tolist()
