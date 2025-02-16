@@ -373,8 +373,6 @@ class PLAIDModelIndex(ModelIndex):
         k: int = 10,
         pids: Optional[List[int]] = None,
         force_reload: bool = False,
-        remove_zero_tensors: bool = True,
-        centroid_search_batch_size: int = None,
         **kwargs,
     ) -> list[tuple[list, list, list]]:
         self.config = config
@@ -413,9 +411,7 @@ class PLAIDModelIndex(ModelIndex):
             queries,
             query_embeddings,
             # progress=False,
-            batch_size=centroid_search_batch_size,
             k=k,
-            remove_zero_tensors=remove_zero_tensors,  # For PreFLMR, this is needed
             **kwargs, # other arguments
         )
 
