@@ -469,7 +469,7 @@ class ColBERT(LateInteractionModel):
         #      For now require that either index() was called, or an existing one was loaded.
         assert self.model_index is not None
 
-        results = self.model_index.search(
+        results = self.model_index.search_Q(
             self.config,
             self.checkpoint,
             self.collection,
