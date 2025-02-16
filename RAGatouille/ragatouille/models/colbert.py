@@ -440,8 +440,6 @@ class ColBERT(LateInteractionModel):
         force_fast: bool = False,
         zero_index_ranks: bool = False,
         doc_ids: Optional[List[str]] = None,
-        remove_zero_tensors: bool = True,
-        centroid_search_batch_size: int = None,
     ):
         pids = None
         if doc_ids is not None:
@@ -481,8 +479,6 @@ class ColBERT(LateInteractionModel):
             pids,
             force_reload,
             force_fast=force_fast,
-            remove_zero_tensors=remove_zero_tensors,
-            centroid_search_batch_size=centroid_search_batch_size,
         )
 
         to_return = []

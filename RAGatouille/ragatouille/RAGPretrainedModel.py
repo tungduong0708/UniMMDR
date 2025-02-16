@@ -332,8 +332,6 @@ class RAGPretrainedModel:
         force_fast: bool = False,
         zero_index_ranks: bool = False,
         doc_ids: Optional[list[str]] = None,
-        remove_zero_tensors: bool = True,
-        centroid_search_batch_size: int = None,
         **kwargs,
     ):
         """Query an index.
@@ -366,8 +364,6 @@ class RAGPretrainedModel:
             force_fast=force_fast,
             zero_index_ranks=zero_index_ranks,
             doc_ids=doc_ids,
-            remove_zero_tensors=remove_zero_tensors,
-            centroid_search_batch_size=centroid_search_batch_size,
             **kwargs,
         )
 
