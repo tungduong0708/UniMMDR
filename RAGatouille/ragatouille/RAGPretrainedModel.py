@@ -358,7 +358,7 @@ class RAGPretrainedModel:
         ```
 
         """
-        return self.model.search(
+        return self.model.search_Q(
             queries=queries,
             query_embeddings=query_embeddings,
             index_name=index_name,
