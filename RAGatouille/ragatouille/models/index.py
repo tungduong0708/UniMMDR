@@ -2,13 +2,14 @@ import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, List, Literal, Optional, TypeVar, Union
+from typing import Any, List, Literal, Optional, TypeVar, Union, Dict
 
 import srsly
 import torch
 from colbert import Indexer, IndexUpdater, Searcher
 from colbert.indexing.collection_indexer import CollectionIndexer
 from colbert.infra import ColBERTConfig
+from colbert.data import Queries
 
 from ragatouille.models import torch_kmeans
 
@@ -353,6 +354,70 @@ class PLAIDModelIndex(ModelIndex):
             longest_query_length = max([int(len(x.split(" ")) * 1.35) for x in query])
             self._upgrade_searcher_maxlen(longest_query_length, base_model_max_tokens)
             results = self._batch_search(query, k)
+
+        # Restore original ncells&ndocs if it had to be changed for large k values
+        self.searcher.configure(ncells=base_ncells)
+        self.searcher.configure(ndocs=base_ndocs)
+
+        return results  # type: ignore
+
+    def search_Q(
+        self,
+        config: ColBERTConfig,
+        checkpoint: Union[str, Path],
+        collection: List[str],
+        index_name: Optional[str],
+        base_model_max_tokens: int,
+        queries: Dict[int, str],
+        query_embeddings: torch.Tensor,
+        k: int = 10,
+        pids: Optional[List[int]] = None,
+        force_reload: bool = False,
+        remove_zero_tensors: bool = True,
+        centroid_search_batch_size: int = None,
+        **kwargs,
+    ) -> list[tuple[list, list, list]]:
+        self.config = config
+
+        force_fast = kwargs.get("force_fast", False)
+        assert isinstance(force_fast, bool)
+
+        if self.searcher is None or force_reload:
+            self._load_searcher(
+                checkpoint,
+                collection,
+                index_name,
+                force_fast,
+            )
+        assert self.searcher is not None
+
+        base_ncells = self.searcher.config.ncells
+        base_ndocs = self.searcher.config.ndocs
+
+        if k > len(self.searcher.collection):
+            print(
+                "WARNING: k value is larger than the number of documents in the index!",
+                f"Lowering k to {len(self.searcher.collection)}...",
+            )
+            k = len(self.searcher.collection)
+
+        # For smaller collections, we need a higher ncells value to ensure we return enough results
+        if k > (32 * self.searcher.config.ncells):
+            self.searcher.configure(ncells=min((k // 32 + 2), base_ncells))
+
+        self.searcher.configure(ndocs=max(k * 4, base_ndocs))
+
+        queries = Queries(data=queries)
+
+        results = self.searcher._search_all_Q(
+            queries,
+            query_embeddings,
+            progress=False,
+            batch_size=centroid_search_batch_size,
+            k=k,
+            remove_zero_tensors=remove_zero_tensors,  # For PreFLMR, this is needed
+            **kwargs, # other arguments
+        )
 
         # Restore original ncells&ndocs if it had to be changed for large k values
         self.searcher.configure(ncells=base_ncells)

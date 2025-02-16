@@ -430,6 +430,86 @@ class ColBERT(LateInteractionModel):
         if len(to_return) == 1:
             return to_return[0]
         return to_return
+    
+    def search_Q(
+        self,
+        queries: Dict[int, str],
+        query_embeddings: torch.Tensor,
+        index_name: Optional["str"] = None,
+        k: int = 10,
+        force_fast: bool = False,
+        zero_index_ranks: bool = False,
+        doc_ids: Optional[List[str]] = None,
+        remove_zero_tensors: bool = True,
+        centroid_search_batch_size: int = None,
+    ):
+        pids = None
+        if doc_ids is not None:
+            pids = []
+            for doc_id in doc_ids:
+                pids.extend(self.docid_pid_map[doc_id])
+
+        force_reload = index_name is not None and index_name != self.index_name
+        if index_name is not None:
+            if self.index_name is not None and self.index_name != index_name:
+                print(
+                    f"New index_name received!",
+                    f"Updating current index_name ({self.index_name}) to {index_name}",
+                )
+            self.index_name = index_name
+        else:
+            if self.index_name is None:
+                print(
+                    "Cannot search without an index_name! Please provide one.",
+                    "Returning empty results.",
+                )
+                return None
+
+        # TODO We may want to load an existing index here instead;
+        #      For now require that either index() was called, or an existing one was loaded.
+        assert self.model_index is not None
+
+        results = self.model_index.search(
+            self.config,
+            self.checkpoint,
+            self.collection,
+            self.index_name,
+            self.base_model_max_tokens,
+            queries,
+            query_embeddings,
+            k,
+            pids,
+            force_reload,
+            force_fast=force_fast,
+            remove_zero_tensors=remove_zero_tensors,
+            centroid_search_batch_size=centroid_search_batch_size,
+        )
+
+        to_return = []
+        for result in results:
+            result_for_query = []
+            for id_, rank, score in zip(*result):
+                document_id = self.pid_docid_map[id_]
+                result_dict = {
+                    "content": self.collection[id_],
+                    "score": score,
+                    "rank": rank - 1 if zero_index_ranks else rank,
+                    "document_id": document_id,
+                    "passage_id": id_,
+                }
+
+                if self.docid_metadata_map is not None:
+                    if document_id in self.docid_metadata_map:
+                        doc_metadata = self.docid_metadata_map[document_id]
+                        result_dict["document_metadata"] = doc_metadata
+
+                result_for_query.append(result_dict)
+
+            to_return.append(result_for_query)
+
+        if len(to_return) == 1:
+            return to_return[0]
+        return to_return
 
     def _search(self, query: str, k: int, pids: Optional[List[int]] = None):
         assert self.model_index is not None

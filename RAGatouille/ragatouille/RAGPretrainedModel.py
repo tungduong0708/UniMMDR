@@ -321,6 +321,54 @@ class RAGPretrainedModel:
             doc_ids=doc_ids,
             **kwargs,
         )
+    
+    def search_Q (
+        self,
+        queries: Dict[int, str],
+        query_embeddings: torch.Tensor,
+        index_name: Optional["str"] = None,
+        k: int = 10,
+        force_fast: bool = False,
+        zero_index_ranks: bool = False,
+        doc_ids: Optional[list[str]] = None,
+        remove_zero_tensors: bool = True,
+        centroid_search_batch_size: int = None,
+        **kwargs,
+    ):
+        """Query an index.
+
+        Parameters:
+            query (Union[str, list[str]]): The query or list of queries to search for.
+            index_name (Optional[str]): Provide the name of an index to query. If None and by default, will query an already initialised one.
+            k (int): The number of results to return for each query.
+            force_fast (bool): Whether to force the use of a faster but less accurate search method.
+            zero_index_ranks (bool): Whether to zero the index ranks of the results. By default, result rank 1 is the highest ranked result
+
+        Returns:
+            results (Union[list[dict], list[list[dict]]]): A list of dict containing individual results for each query. If a list of queries is provided, returns a list of lists of dicts. Each result is a dict with keys `content`, `score`, `rank`, and 'document_id'. If metadata was indexed for the document, it will be returned under the "document_metadata" key.
+
+        Individual results are always in the format:
+        ```python3
+        {"content": "text of the relevant passage", "score": 0.123456, "rank": 1, "document_id": "x"}
+        ```
+        or
+        ```python3
+        {"content": "text of the relevant passage", "score": 0.123456, "rank": 1, "document_id": "x", "document_metadata": {"metadata_key": "metadata_value", ...}}
+        ```
+
+        """
+        return self.model.search(
+            queries=queries,
+            query_embeddings=query_embeddings,
+            index_name=index_name,
+            k=k,
+            force_fast=force_fast,
+            zero_index_ranks=zero_index_ranks,
+            doc_ids=doc_ids,
+            remove_zero_tensors=remove_zero_tensors,
+            centroid_search_batch_size=centroid_search_batch_size,
+            **kwargs,
+        )
 
     def rerank(
         self,
