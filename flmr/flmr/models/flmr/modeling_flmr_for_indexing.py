@@ -217,7 +217,7 @@ class FLMRModelForIndexing(FLMRModelForRetrieval):
             D = [d for batch in batches for d in batch]
             return ([D[idx] for idx in reverse_indices.tolist()], *returned_text)
 
-        # input_ids, attention_mask = self.context_tokenizer(docs)
-        output = self.context_tokenizer(docs)
-        input_ids, attention_mask = output['input_ids'], output['attention_mask']
+        input_ids, attention_mask = self.context_tokenizer(docs)
+        # output = self.context_tokenizer(docs)
+        # input_ids, attention_mask = output['input_ids'], output['attention_mask']
         return self.doc(input_ids, attention_mask, keep_dims=keep_dims, to_cpu=to_cpu)
