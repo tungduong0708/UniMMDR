@@ -412,7 +412,6 @@ class PLAIDModelIndex(ModelIndex):
             query_embeddings,
             # progress=False,
             k=k,
-            **kwargs, # other arguments
         )
 
         # Restore original ncells&ndocs if it had to be changed for large k values
