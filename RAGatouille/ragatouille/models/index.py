@@ -412,7 +412,7 @@ class PLAIDModelIndex(ModelIndex):
         results = self.searcher._search_all_Q(
             queries,
             query_embeddings,
-            progress=False,
+            # progress=False,
             batch_size=centroid_search_batch_size,
             k=k,
             remove_zero_tensors=remove_zero_tensors,  # For PreFLMR, this is needed
