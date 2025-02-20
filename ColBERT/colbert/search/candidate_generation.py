@@ -46,10 +46,11 @@ class CandidateGeneration:
         ncells = config.ncells
 
         assert isinstance(self.ivf, StridedTensor)
-
+        print(Q.shape)
         Q = Q.squeeze(0)
         if self.use_gpu:
             Q = Q.cuda().half()
+        print(Q.shape)
         assert Q.dim() == 2
 
         pids, centroid_scores = self.generate_candidate_pids(Q, ncells)
