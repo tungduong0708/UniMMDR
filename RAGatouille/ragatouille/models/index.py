@@ -414,6 +414,11 @@ class PLAIDModelIndex(ModelIndex):
             k=k,
         )
 
+        results = [
+            [list(zip(*value))[i] for i in range(3)]
+            for value in results.todict().values()
+        ]
+
         # Restore original ncells&ndocs if it had to be changed for large k values
         self.searcher.configure(ncells=base_ncells)
         self.searcher.configure(ndocs=base_ndocs)
